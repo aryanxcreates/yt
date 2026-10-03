@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { extractSpreadsheetId, parseGoogleSheet } from '@/lib/sheets'
 import { resolveChannelId } from '@/lib/youtube'
-import { getChannels, setChannels } from '@/lib/store'
+import { getChannels, setChannels, setSheetUrl } from '@/lib/store'
 import type { ChannelConfig } from '@/lib/types'
 
 export async function POST(req: NextRequest) {
@@ -21,6 +21,9 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     )
   }
+
+  // Save URL so the cron can auto-sync new rows on every run
+  await setSheetUrl(url)
 
   const existing = await getChannels()
   const existingUrls = new Set(existing.map((c) => c.channelUrl))

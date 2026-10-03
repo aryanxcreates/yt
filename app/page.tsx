@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import type { ChannelConfig, ProcessResult } from "@/lib/types";
+import { useState, useEffect, useCallback } from "react";
+import type { ChannelConfig } from "@/lib/types";
 
-type Tab = "excel" | "sheets";
 type Toast = { type: "success" | "error"; text: string } | null;
 
 function StatusBadge({ status }: { status: ChannelConfig["status"] }) {
@@ -20,28 +19,21 @@ function StatusBadge({ status }: { status: ChannelConfig["status"] }) {
 }
 
 function StateBadge({ ch }: { ch: ChannelConfig }) {
-  if (ch.followUpVideoId) {
+  if (ch.followUpVideoId)
     return <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Follow-up posted</span>;
-  }
-  if (ch.creatorReplied) {
+  if (ch.creatorReplied)
     return <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Creator replied</span>;
-  }
-  if (ch.awaitingReply) {
+  if (ch.awaitingReply)
     return <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Awaiting reply</span>;
-  }
-  if (ch.firstCommentVideoId) {
+  if (ch.firstCommentVideoId)
     return <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Comment posted</span>;
-  }
   return <span className="text-xs text-gray-400">Watching…</span>;
 }
 
 function fmt(iso?: string) {
   if (!iso) return "—";
   return new Date(iso).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
   });
 }
 
@@ -51,14 +43,11 @@ function truncate(str: string, n: number) {
 
 export default function Home() {
   const [channels, setChannels] = useState<ChannelConfig[]>([]);
-  const [tab, setTab] = useState<Tab>("excel");
   const [sheetsUrl, setSheetsUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [toast, setToast] = useState<Toast>(null);
-  const [dragOver, setDragOver] = useState(false);
   const [lastRun, setLastRun] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function showToast(type: "success" | "error", text: string) {
     setToast({ type, text });
@@ -73,35 +62,7 @@ export default function Home() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchChannels();
-  }, [fetchChannels]);
-
-  async function handleFile(file: File) {
-    if (!/\.(xlsx|xls|csv)$/i.test(file.name)) {
-      showToast("error", "Please upload an .xlsx, .xls, or .csv file.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast("error", data.error ?? "Upload failed.");
-        return;
-      }
-      const errNote = data.errors?.length ? ` (${data.errors.length} failed to resolve)` : "";
-      showToast("success", `Added ${data.added} channel(s), skipped ${data.skipped} duplicate(s).${errNote}`);
-      fetchChannels();
-    } catch {
-      showToast("error", "Upload failed.");
-    } finally {
-      setLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
+  useEffect(() => { fetchChannels(); }, [fetchChannels]);
 
   async function handleSheetsImport() {
     if (!sheetsUrl.trim()) {
@@ -121,7 +82,7 @@ export default function Home() {
         return;
       }
       const errNote = data.errors?.length ? ` (${data.errors.length} failed to resolve)` : "";
-      showToast("success", `Added ${data.added} channel(s).${errNote}`);
+      showToast("success", `Added ${data.added} channel(s), skipped ${data.skipped} duplicate(s).${errNote}`);
       setSheetsUrl("");
       fetchChannels();
     } catch {
@@ -175,20 +136,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      {/* Toast */}
       {toast && (
-        <div
-          className={`fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all ${
-            toast.type === "success"
-              ? "bg-green-600 text-white"
-              : "bg-red-600 text-white"
-          }`}
-        >
+        <div className={`fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all ${
+          toast.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
+        }`}>
           {toast.text}
         </div>
       )}
 
-      {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-3">
           <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shrink-0">
@@ -198,101 +153,45 @@ export default function Home() {
           </div>
           <div>
             <h1 className="text-base font-semibold text-gray-900 leading-none">YT Auto Commenter</h1>
-            <p className="text-xs text-gray-400 mt-0.5">
-              AI-generated comments posted within minutes of new uploads
-            </p>
+            <p className="text-xs text-gray-400 mt-0.5">AI-generated comments posted within minutes of new uploads</p>
           </div>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        {/* Upload Card */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          {/* Tabs */}
-          <div className="flex border-b border-gray-100">
-            {(["excel", "sheets"] as Tab[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                  tab === t
-                    ? "text-red-600 border-b-2 border-red-600 bg-red-50/30"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                {t === "excel" ? "📊  Excel / CSV" : "🔗  Google Sheets"}
-              </button>
-            ))}
-          </div>
-
-          <div className="p-6">
-            <p className="text-xs text-gray-400 mb-4">
-              Sheet format: <strong className="text-gray-600">Column A</strong> = YouTube channel URL
-              &nbsp;·&nbsp; Comments are generated by AI — no other columns needed.
-            </p>
-
-            {tab === "excel" ? (
-              <div
-                className={`relative border-2 border-dashed rounded-xl p-10 text-center transition-colors cursor-pointer ${
-                  dragOver
-                    ? "border-red-400 bg-red-50"
-                    : "border-gray-200 hover:border-gray-300 bg-gray-50"
-                }`}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOver(false);
-                  const file = e.dataTransfer.files[0];
-                  if (file) handleFile(file);
-                }}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <div className="text-3xl mb-2">📂</div>
-                <p className="text-sm font-medium text-gray-700">
-                  {loading ? "Uploading…" : "Drop your file here or click to browse"}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">.xlsx · .xls · .csv</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleFile(f);
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="flex gap-3">
-                <input
-                  type="url"
-                  placeholder="https://docs.google.com/spreadsheets/d/…"
-                  value={sheetsUrl}
-                  onChange={(e) => setSheetsUrl(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleSheetsImport(); }}
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-                <button
-                  onClick={handleSheetsImport}
-                  disabled={loading}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  {loading ? "Importing…" : "Import"}
-                </button>
-              </div>
-            )}
+        {/* Import card */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Google Sheets URL
+          </label>
+          <p className="text-xs text-gray-400 mb-3">
+            Column A = YouTube channel URLs. New rows are picked up automatically on every cron run.
+          </p>
+          <div className="flex gap-3">
+            <input
+              type="url"
+              placeholder="https://docs.google.com/spreadsheets/d/…"
+              value={sheetsUrl}
+              onChange={(e) => setSheetsUrl(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSheetsImport(); }}
+              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            />
+            <button
+              onClick={handleSheetsImport}
+              disabled={loading}
+              className="px-5 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {loading ? "Importing…" : "Import"}
+            </button>
           </div>
         </div>
 
-        {/* Channels */}
+        {/* Channels table */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">
-                Channels{" "}
-                <span className="text-gray-400 font-normal">({channels.length})</span>
+                Channels <span className="text-gray-400 font-normal">({channels.length})</span>
               </h2>
               {lastRun && (
                 <p className="text-xs text-gray-400 mt-0.5">Last run: {fmt(lastRun)}</p>
@@ -319,9 +218,7 @@ export default function Home() {
                     </svg>
                     Running…
                   </>
-                ) : (
-                  <>▶ Run Now</>
-                )}
+                ) : <>▶ Run Now</>}
               </button>
             </div>
           </div>
@@ -329,9 +226,7 @@ export default function Home() {
           {channels.length === 0 ? (
             <div className="py-20 text-center">
               <div className="text-4xl mb-3">📋</div>
-              <p className="text-sm text-gray-400">
-                No channels yet. Upload a sheet to get started.
-              </p>
+              <p className="text-sm text-gray-400">No channels yet. Paste your Google Sheets URL above to get started.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -351,12 +246,8 @@ export default function Home() {
                   {channels.map((ch) => (
                     <tr key={ch.channelId} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
-                        <a
-                          href={ch.channelUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-medium text-blue-600 hover:underline"
-                        >
+                        <a href={ch.channelUrl} target="_blank" rel="noopener noreferrer"
+                          className="font-medium text-blue-600 hover:underline">
                           {ch.channelTitle}
                         </a>
                         {ch.error && (
@@ -368,37 +259,20 @@ export default function Home() {
                           #{(ch.accountIndex ?? 0) + 1}
                         </span>
                       </td>
-                      <td className="px-4 py-4">
-                        <StateBadge ch={ch} />
-                      </td>
-                      <td className="px-4 py-4">
-                        <StatusBadge status={ch.status} />
-                      </td>
+                      <td className="px-4 py-4"><StateBadge ch={ch} /></td>
+                      <td className="px-4 py-4"><StatusBadge status={ch.status} /></td>
                       <td className="px-4 py-4">
                         {ch.lastVideoId ? (
-                          <a
-                            href={`https://youtube.com/watch?v=${ch.lastVideoId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline"
-                          >
-                            {ch.lastVideoTitle
-                              ? truncate(ch.lastVideoTitle, 35)
-                              : ch.lastVideoId}
+                          <a href={`https://youtube.com/watch?v=${ch.lastVideoId}`} target="_blank" rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline">
+                            {ch.lastVideoTitle ? truncate(ch.lastVideoTitle, 35) : ch.lastVideoId}
                           </a>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
+                        ) : <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="px-4 py-4 text-xs text-gray-400 whitespace-nowrap">
-                        {fmt(ch.lastCommentedAt)}
-                      </td>
+                      <td className="px-4 py-4 text-xs text-gray-400 whitespace-nowrap">{fmt(ch.lastCommentedAt)}</td>
                       <td className="px-4 py-4">
-                        <button
-                          onClick={() => handleDelete(ch.channelId)}
-                          className="text-gray-300 hover:text-red-500 transition-colors text-xs"
-                          title="Remove channel"
-                        >
+                        <button onClick={() => handleDelete(ch.channelId)}
+                          className="text-gray-300 hover:text-red-500 transition-colors text-xs" title="Remove channel">
                           ✕
                         </button>
                       </td>
@@ -410,10 +284,8 @@ export default function Home() {
           )}
         </div>
 
-        {/* Info footer */}
         <p className="text-xs text-gray-400 text-center">
-          Auto-runs every 15 min via Vercel Cron. Comments generated by Claude AI using video title &amp; description.
-          Uses 3 YouTube accounts in round-robin rotation.
+          Auto-runs every 15 min via Vercel Cron · New sheet rows picked up automatically · Comments generated by Claude AI · 3 YouTube accounts in rotation
         </p>
       </main>
     </div>

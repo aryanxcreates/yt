@@ -1,6 +1,7 @@
-import { getLatestVideo, getVideoContent, getVideoTranscript, postComment, checkCreatorReplied } from './youtube'
-import { getChannels, setChannels } from './store'
+import { getLatestVideo, getVideoContent, getVideoTranscript, postComment, checkCreatorReplied, resolveChannelId } from './youtube'
+import { getChannels, setChannels, getSheetUrl } from './store'
 import { generateFirstComment, generateFollowUpComment } from './claude'
+import { extractSpreadsheetId, parseGoogleSheet } from './sheets'
 import type { ChannelConfig, ProcessResult } from './types'
 
 const DELAY_MS = 500
@@ -8,7 +9,40 @@ const MAX_VIDEO_AGE_MS = 24 * 60 * 60 * 1000
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
+async function syncFromStoredSheet(): Promise<void> {
+  const url = await getSheetUrl()
+  if (!url) return
+  const spreadsheetId = extractSpreadsheetId(url)
+  if (!spreadsheetId) return
+
+  try {
+    const entries = await parseGoogleSheet(spreadsheetId)
+    const channels = await getChannels()
+    const existingUrls = new Set(channels.map((c) => c.channelUrl))
+    const toAdd = entries.filter((e) => !existingUrls.has(e.channelUrl))
+    if (!toAdd.length) return
+
+    const newChannels: ChannelConfig[] = []
+    for (const entry of toAdd) {
+      try {
+        const { id, title, uploadsPlaylistId } = await resolveChannelId(entry.channelUrl)
+        newChannels.push({
+          channelUrl: entry.channelUrl,
+          channelId: id,
+          channelTitle: title,
+          uploadsPlaylistId,
+          accountIndex: (channels.length + newChannels.length) % 3,
+          status: 'pending',
+        })
+      } catch { /* skip unresolvable URLs */ }
+    }
+    if (newChannels.length) await setChannels([...channels, ...newChannels])
+  } catch { /* don't break the cron if sheet is unreachable */ }
+}
+
 export async function processChannels(): Promise<ProcessResult[]> {
+  await syncFromStoredSheet()
+
   const channels = await getChannels()
   const results: ProcessResult[] = []
   const updated: ChannelConfig[] = []
