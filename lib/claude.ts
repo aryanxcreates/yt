@@ -2,11 +2,21 @@ import Anthropic from '@anthropic-ai/sdk'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+function buildContext(description: string, transcript: string | null | undefined): string {
+  if (transcript?.trim()) {
+    return `Video transcript:\n${transcript.slice(0, 3000)}`
+  }
+  return `Video description:\n${description.slice(0, 600)}`
+}
+
 export async function generateFirstComment(
   videoTitle: string,
   videoDescription: string,
-  channelTitle: string
+  channelTitle: string,
+  transcript?: string | null
 ): Promise<string> {
+  const context = buildContext(videoDescription, transcript)
+
   const response = await client.messages.create({
     model: 'claude-opus-4-8',
     max_tokens: 200,
@@ -16,7 +26,7 @@ export async function generateFirstComment(
 
 Channel: ${channelTitle}
 Video title: ${videoTitle}
-Video description (excerpt): ${videoDescription.slice(0, 600)}
+${context}
 
 Write a genuine, engaging comment (1-3 sentences) that:
 - Feels like a real viewer wrote it
@@ -37,8 +47,11 @@ Reply with ONLY the comment text, nothing else.`,
 export async function generateFollowUpComment(
   videoTitle: string,
   videoDescription: string,
-  channelTitle: string
+  channelTitle: string,
+  transcript?: string | null
 ): Promise<string> {
+  const context = buildContext(videoDescription, transcript)
+
   const response = await client.messages.create({
     model: 'claude-opus-4-8',
     max_tokens: 200,
@@ -48,7 +61,7 @@ export async function generateFollowUpComment(
 
 Channel: ${channelTitle}
 Video title: ${videoTitle}
-Video description (excerpt): ${videoDescription.slice(0, 600)}
+${context}
 
 Write a genuine comment (1-3 sentences) from someone who keeps watching this channel's videos. It should:
 - Feel like a loyal viewer who comes back regularly

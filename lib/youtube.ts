@@ -139,6 +139,16 @@ export async function postComment(
   return threadId
 }
 
+export async function getVideoTranscript(videoId: string): Promise<string | null> {
+  try {
+    const { YoutubeTranscript } = await import('youtube-transcript')
+    const segments = await YoutubeTranscript.fetchTranscript(videoId)
+    return segments.map((s) => s.text).join(' ').trim() || null
+  } catch {
+    return null
+  }
+}
+
 export async function checkCreatorReplied(
   threadId: string,
   channelId: string

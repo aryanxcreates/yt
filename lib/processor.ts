@@ -1,4 +1,4 @@
-import { getLatestVideo, getVideoContent, postComment, checkCreatorReplied } from './youtube'
+import { getLatestVideo, getVideoContent, getVideoTranscript, postComment, checkCreatorReplied } from './youtube'
 import { getChannels, setChannels } from './store'
 import { generateFirstComment, generateFollowUpComment } from './claude'
 import type { ChannelConfig, ProcessResult } from './types'
@@ -55,7 +55,8 @@ export async function processChannels(): Promise<ProcessResult[]> {
         } else if (channel.awaitingReply) {
           // New video — creator never replied to first comment, post follow-up
           const { title, description } = await getVideoContent(video.id)
-          const comment = await generateFollowUpComment(title, description, channel.channelTitle)
+          const transcript = await getVideoTranscript(video.id)
+          const comment = await generateFollowUpComment(title, description, channel.channelTitle, transcript)
           await postComment(video.id, comment, channel.accountIndex)
           result.action = 'follow_up'
           result.commented = true
@@ -74,7 +75,8 @@ export async function processChannels(): Promise<ProcessResult[]> {
         } else {
           // New video, not awaiting reply — post first comment
           const { title, description } = await getVideoContent(video.id)
-          const comment = await generateFirstComment(title, description, channel.channelTitle)
+          const transcript = await getVideoTranscript(video.id)
+          const comment = await generateFirstComment(title, description, channel.channelTitle, transcript)
           const threadId = await postComment(video.id, comment, channel.accountIndex)
           result.action = 'first_comment'
           result.commented = true
