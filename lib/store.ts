@@ -35,11 +35,19 @@ async function getRedis() {
 }
 
 export async function getChannels(): Promise<ChannelConfig[]> {
+  let channels: ChannelConfig[]
   if (isRedisAvailable()) {
     const redis = await getRedis()
-    return (await redis.get<ChannelConfig[]>('channels')) ?? []
+    channels = (await redis.get<ChannelConfig[]>('channels')) ?? []
+  } else {
+    channels = readLocal().channels
   }
-  return readLocal().channels
+  const seen = new Set<string>()
+  return channels.filter((c) => {
+    if (seen.has(c.channelId)) return false
+    seen.add(c.channelId)
+    return true
+  })
 }
 
 export async function setChannels(channels: ChannelConfig[]): Promise<void> {
