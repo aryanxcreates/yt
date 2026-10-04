@@ -79,6 +79,7 @@ export async function processChannels(): Promise<ProcessResult[]> {
             ...channel,
             lastVideoId: video.id,
             lastVideoTitle: video.title,
+            lastVideoPublishedAt: video.publishedAt,
             lastChecked: new Date().toISOString(),
             status: 'active',
           })
@@ -97,6 +98,7 @@ export async function processChannels(): Promise<ProcessResult[]> {
             ...channel,
             lastVideoId: video.id,
             lastVideoTitle: video.title,
+            lastVideoPublishedAt: video.publishedAt,
             lastChecked: new Date().toISOString(),
             lastCommentedAt: new Date().toISOString(),
             awaitingReply: false,
@@ -117,6 +119,7 @@ export async function processChannels(): Promise<ProcessResult[]> {
             ...channel,
             lastVideoId: video.id,
             lastVideoTitle: video.title,
+            lastVideoPublishedAt: video.publishedAt,
             lastChecked: new Date().toISOString(),
             lastCommentedAt: new Date().toISOString(),
             firstCommentVideoId: video.id,

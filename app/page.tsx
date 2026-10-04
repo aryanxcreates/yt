@@ -62,7 +62,11 @@ export default function Home() {
     }
   }, []);
 
-  useEffect(() => { fetchChannels(); }, [fetchChannels]);
+  useEffect(() => {
+    fetch("/api/channels")
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data) setChannels(data.channels ?? []); });
+  }, []);
 
   async function handleSheetsImport() {
     if (!sheetsUrl.trim()) {
@@ -316,10 +320,15 @@ export default function Home() {
                       <td className="px-4 py-4"><StatusBadge status={ch.status} /></td>
                       <td className="px-4 py-4">
                         {ch.lastVideoId ? (
-                          <a href={`https://youtube.com/watch?v=${ch.lastVideoId}`} target="_blank" rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline">
-                            {ch.lastVideoTitle ? truncate(ch.lastVideoTitle, 35) : ch.lastVideoId}
-                          </a>
+                          <div>
+                            <a href={`https://youtube.com/watch?v=${ch.lastVideoId}`} target="_blank" rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:underline">
+                              {ch.lastVideoTitle ? truncate(ch.lastVideoTitle, 35) : ch.lastVideoId}
+                            </a>
+                            {ch.lastVideoPublishedAt && (
+                              <p className="text-xs text-gray-400 mt-0.5">{fmt(ch.lastVideoPublishedAt)}</p>
+                            )}
+                          </div>
                         ) : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="px-4 py-4 text-xs text-gray-400 whitespace-nowrap">{fmt(ch.lastCommentedAt)}</td>

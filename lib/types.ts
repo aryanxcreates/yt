@@ -15,6 +15,7 @@ export interface ChannelConfig {
   lastCommentedAt?: string
   lastVideoId?: string
   lastVideoTitle?: string
+  lastVideoPublishedAt?: string
 
   firstCommentVideoId?: string
   firstCommentThreadId?: string
