@@ -5,7 +5,6 @@ import { extractSpreadsheetId, parseGoogleSheet } from './sheets'
 import type { ChannelConfig, ProcessResult } from './types'
 
 const DELAY_MS = 500
-const MAX_VIDEO_AGE_MS = 24 * 60 * 60 * 1000
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -73,11 +72,8 @@ export async function processChannels(): Promise<ProcessResult[]> {
       const isNewVideo = video.id !== channel.lastVideoId
 
       if (isNewVideo) {
-        const videoAgeMs = Date.now() - new Date(video.publishedAt).getTime()
-        const isTooOld = videoAgeMs > MAX_VIDEO_AGE_MS && !channel.firstCommentVideoId
-
-        if (isTooOld) {
-          // Newly added channel with only old content — establish baseline without commenting
+        if (!channel.lastVideoId) {
+          // Channel just added — record baseline, never comment on the existing video
           result.skipped = true
           updated.push({
             ...channel,
@@ -86,6 +82,9 @@ export async function processChannels(): Promise<ProcessResult[]> {
             lastChecked: new Date().toISOString(),
             status: 'active',
           })
+          results.push(result)
+          await sleep(DELAY_MS)
+          continue
         } else if (channel.awaitingReply) {
           // New video — creator never replied to first comment, post follow-up
           const { title, description } = await getVideoContent(video.id)

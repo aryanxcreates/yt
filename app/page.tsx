@@ -186,6 +186,59 @@ export default function Home() {
           </div>
         </div>
 
+        {/* How it works */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">How it works</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            {[
+              { step: "1", title: "Add channels", desc: "Paste your Google Sheet URL (Column A = channel URLs) and click Import." },
+              { step: "2", title: "New video detected", desc: "Every run checks each channel. If a new upload is found within 24 h, it posts an AI comment." },
+              { step: "3", title: "Awaiting reply", desc: "After the first comment, the channel waits. If the creator replies, the cycle is done." },
+              { step: "4", title: "Follow-up", desc: "If they post another video without replying, a follow-up comment is posted on the new video." },
+            ].map(({ step, title, desc }) => (
+              <div key={step} className="flex gap-3">
+                <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{step}</span>
+                <div>
+                  <p className="text-xs font-semibold text-gray-700">{title}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+            <p className="text-xs font-semibold text-gray-700">State legend</p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              {[
+                { badge: <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-400">Watching…</span>, desc: "Monitoring for new uploads. No comment posted yet." },
+                { badge: <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Awaiting reply</span>, desc: "First comment posted. Waiting to see if the creator replies." },
+                { badge: <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Creator replied</span>, desc: "Creator responded to the comment. Cycle complete." },
+                { badge: <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Follow-up posted</span>, desc: "No reply came, so a follow-up was posted on their next video." },
+              ].map(({ badge, desc }, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  {badge}
+                  <span className="text-xs text-gray-400">{desc}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs font-semibold text-gray-700 pt-1">Status legend</p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              {[
+                { badge: <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">active</span>, desc: "Running normally." },
+                { badge: <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">pending</span>, desc: "Added but not yet processed." },
+                { badge: <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">error</span>, desc: "Last run failed — check the error below the channel name." },
+              ].map(({ badge, desc }, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  {badge}
+                  {desc && <span className="text-xs text-gray-400">{desc}</span>}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 pt-1">
+              Runs automatically every 5 min via cron, or manually with <span className="font-medium text-gray-500">▶ Run Now</span>. New sheet rows are synced on each run. Comments rotate across 3 YouTube accounts.
+            </p>
+          </div>
+        </div>
+
         {/* Channels table */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
