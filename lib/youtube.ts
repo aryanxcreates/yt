@@ -1,4 +1,5 @@
 import { google } from 'googleapis'
+import accountNames from './accounts.json'
 
 /**
  * Google OAuth/API errors (GaxiosError) carry the useful detail in
@@ -60,23 +61,8 @@ function ytWrite(accountIndex: number) {
   return google.youtube({ version: 'v3', auth: getOAuth2Client(accountIndex) })
 }
 
-// Account titles are fixed per credential set, so resolve each one only once
-// per serverless instance.
-const accountNameCache = new Map<number, string>()
-
-export async function getAccountName(accountIndex: number): Promise<string> {
-  const cached = accountNameCache.get(accountIndex)
-  if (cached) return cached
-  try {
-    const yt = ytWrite(accountIndex)
-    const res = await yt.channels.list({ part: ['snippet'], mine: true })
-    const name = res.data.items?.[0]?.snippet?.title
-    const resolved = name || `Account ${accountIndex + 1}`
-    accountNameCache.set(accountIndex, resolved)
-    return resolved
-  } catch {
-    return `Account ${accountIndex + 1}`
-  }
+export function getAccountName(accountIndex: number): string {
+  return accountNames[accountIndex] ?? `Account ${accountIndex + 1}`
 }
 
 export async function resolveChannelId(url: string): Promise<{

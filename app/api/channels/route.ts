@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChannels, setChannels } from "@/lib/store";
+import { getChannels, setChannels, getLastRun } from "@/lib/store";
 
 export async function GET() {
-  const channels = await getChannels();
-  return NextResponse.json({ channels });
+  const [channels, lastRun] = await Promise.all([getChannels(), getLastRun()]);
+  return NextResponse.json({ channels, lastRun });
 }
 
 export async function DELETE(req: NextRequest) {

@@ -6,6 +6,7 @@ type LocalData = {
   channels: ChannelConfig[]
   processedVideos: string[]
   sheetUrl?: string
+  lastRun?: string
 }
 
 const LOCAL_PATH = path.join(process.cwd(), '.store.json')
@@ -76,6 +77,25 @@ export async function setSheetUrl(url: string): Promise<void> {
   } else {
     const data = readLocal()
     data.sheetUrl = url
+    writeLocal(data)
+  }
+}
+
+export async function getLastRun(): Promise<string | null> {
+  if (isRedisAvailable()) {
+    const redis = await getRedis()
+    return (await redis.get<string>('lastRun')) ?? null
+  }
+  return readLocal().lastRun ?? null
+}
+
+export async function setLastRun(timestamp: string): Promise<void> {
+  if (isRedisAvailable()) {
+    const redis = await getRedis()
+    await redis.set('lastRun', timestamp)
+  } else {
+    const data = readLocal()
+    data.lastRun = timestamp
     writeLocal(data)
   }
 }

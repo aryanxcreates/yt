@@ -1,5 +1,5 @@
 import { getLatestVideo, getVideoContent, getVideoTranscript, postComment, checkCreatorReplied, resolveChannelId, describeApiError, getAccountName } from './youtube'
-import { getChannels, setChannels, getSheetUrl } from './store'
+import { getChannels, setChannels, getSheetUrl, setLastRun } from './store'
 import { generateFirstComment, generateFollowUpComment } from './claude'
 import { extractSpreadsheetId, parseGoogleSheet } from './sheets'
 import type { ChannelConfig, PostedComment, ProcessResult } from './types'
@@ -56,7 +56,7 @@ export async function processChannels(): Promise<ProcessResult[]> {
     }
 
     try {
-      const accountName = await getAccountName(channel.accountIndex)
+      const accountName = getAccountName(channel.accountIndex)
       const video = await getLatestVideo(channel.uploadsPlaylistId)
 
       if (!video) {
@@ -216,5 +216,6 @@ export async function processChannels(): Promise<ProcessResult[]> {
   }
 
   await setChannels(updated)
+  await setLastRun(new Date().toISOString())
   return results
 }

@@ -125,13 +125,19 @@ export default function Home() {
     if (res.ok) {
       const data = await res.json();
       setChannels(data.channels ?? []);
+      if (data.lastRun) setLastRun(data.lastRun);
     }
   }, []);
 
   useEffect(() => {
     fetch("/api/channels")
       .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data) setChannels(data.channels ?? []); });
+      .then(data => {
+        if (data) {
+          setChannels(data.channels ?? []);
+          if (data.lastRun) setLastRun(data.lastRun);
+        }
+      });
   }, []);
 
   async function handleSheetsImport() {
@@ -228,6 +234,13 @@ export default function Home() {
           <div>
             <h1 className="text-base font-semibold text-gray-900 leading-none">YT Auto Commenter</h1>
             <p className="text-xs text-gray-400 mt-0.5">AI-generated comments posted within minutes of new uploads</p>
+          </div>
+          <div className="ml-auto text-right">
+            <p className="text-xs font-medium text-gray-500">Last run</p>
+            <p className="text-xs text-gray-400 mt-0.5 flex items-center justify-end gap-1.5">
+              <span className={`inline-block w-1.5 h-1.5 rounded-full ${lastRun ? "bg-green-500" : "bg-gray-300"}`} />
+              {lastRun ? fmt(lastRun) : "never"}
+            </p>
           </div>
         </div>
       </header>
