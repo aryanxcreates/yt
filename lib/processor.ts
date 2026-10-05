@@ -1,8 +1,8 @@
-import { getLatestVideo, getVideoContent, getVideoTranscript, postComment, checkCreatorReplied, resolveChannelId, describeApiError } from './youtube'
+import { getLatestVideo, getVideoContent, getVideoTranscript, postComment, checkCreatorReplied, resolveChannelId, describeApiError, getAccountName } from './youtube'
 import { getChannels, setChannels, getSheetUrl } from './store'
 import { generateFirstComment, generateFollowUpComment } from './claude'
 import { extractSpreadsheetId, parseGoogleSheet } from './sheets'
-import type { ChannelConfig, ProcessResult } from './types'
+import type { ChannelConfig, PostedComment, ProcessResult } from './types'
 
 const DELAY_MS = 500
 
@@ -56,11 +56,12 @@ export async function processChannels(): Promise<ProcessResult[]> {
     }
 
     try {
+      const accountName = await getAccountName(channel.accountIndex)
       const video = await getLatestVideo(channel.uploadsPlaylistId)
 
       if (!video) {
         result.skipped = true
-        updated.push({ ...channel, lastChecked: new Date().toISOString() })
+        updated.push({ ...channel, accountName, lastChecked: new Date().toISOString() })
         results.push(result)
         await sleep(DELAY_MS)
         continue
@@ -77,6 +78,22 @@ export async function processChannels(): Promise<ProcessResult[]> {
           result.skipped = true
           updated.push({
             ...channel,
+            accountName,
+            lastVideoId: video.id,
+            lastVideoTitle: video.title,
+            lastVideoPublishedAt: video.publishedAt,
+            lastChecked: new Date().toISOString(),
+            status: 'active',
+          })
+          results.push(result)
+          await sleep(DELAY_MS)
+          continue
+        } else if (channel.creatorReplied) {
+          // Creator already replied — cycle complete, just track the new video
+          result.skipped = true
+          updated.push({
+            ...channel,
+            accountName,
             lastVideoId: video.id,
             lastVideoTitle: video.title,
             lastVideoPublishedAt: video.publishedAt,
@@ -87,44 +104,70 @@ export async function processChannels(): Promise<ProcessResult[]> {
           await sleep(DELAY_MS)
           continue
         } else if (channel.awaitingReply) {
-          // New video — creator never replied to first comment, post follow-up
+          // New video — creator still hasn't replied, post another follow-up.
+          // Keep awaitingReply=true so we keep following up on every new video
+          // until the creator finally replies.
           const { title, description } = await getVideoContent(video.id)
           const transcript = await getVideoTranscript(video.id)
           const comment = await generateFollowUpComment(title, description, channel.channelTitle, transcript)
-          await postComment(video.id, comment, channel.accountIndex)
+          const postedAt = new Date().toISOString()
+          const threadId = await postComment(video.id, comment, channel.accountIndex)
+          const entry: PostedComment = {
+            type: 'follow_up',
+            text: comment,
+            videoId: video.id,
+            videoTitle: video.title,
+            threadId,
+            postedAt,
+          }
           result.action = 'follow_up'
           result.commented = true
           updated.push({
             ...channel,
+            accountName,
             lastVideoId: video.id,
             lastVideoTitle: video.title,
             lastVideoPublishedAt: video.publishedAt,
             lastChecked: new Date().toISOString(),
-            lastCommentedAt: new Date().toISOString(),
-            awaitingReply: false,
+            lastCommentedAt: postedAt,
+            comments: [...(channel.comments ?? []), entry],
+            lastThreadId: threadId,
+            awaitingReply: true,
             followUpVideoId: video.id,
-            followUpPostedAt: new Date().toISOString(),
+            followUpPostedAt: postedAt,
             status: 'active',
             error: undefined,
           })
         } else {
-          // New video, not awaiting reply — post first comment
+          // New video, never commented yet — post the first comment
           const { title, description } = await getVideoContent(video.id)
           const transcript = await getVideoTranscript(video.id)
           const comment = await generateFirstComment(title, description, channel.channelTitle, transcript)
+          const postedAt = new Date().toISOString()
           const threadId = await postComment(video.id, comment, channel.accountIndex)
+          const entry: PostedComment = {
+            type: 'first',
+            text: comment,
+            videoId: video.id,
+            videoTitle: video.title,
+            threadId,
+            postedAt,
+          }
           result.action = 'first_comment'
           result.commented = true
           updated.push({
             ...channel,
+            accountName,
             lastVideoId: video.id,
             lastVideoTitle: video.title,
             lastVideoPublishedAt: video.publishedAt,
             lastChecked: new Date().toISOString(),
-            lastCommentedAt: new Date().toISOString(),
+            lastCommentedAt: postedAt,
+            comments: [...(channel.comments ?? []), entry],
             firstCommentVideoId: video.id,
             firstCommentThreadId: threadId,
-            firstCommentPostedAt: new Date().toISOString(),
+            firstCommentPostedAt: postedAt,
+            lastThreadId: threadId,
             awaitingReply: true,
             creatorReplied: false,
             followUpVideoId: undefined,
@@ -134,12 +177,14 @@ export async function processChannels(): Promise<ProcessResult[]> {
           })
         }
       } else {
-        // Same video — check for creator reply if we're waiting on one
-        if (channel.awaitingReply && channel.firstCommentThreadId) {
-          const replied = await checkCreatorReplied(channel.firstCommentThreadId, channel.channelId)
+        // Same video — check for a creator reply on our most recent comment
+        const threadToCheck = channel.lastThreadId ?? channel.firstCommentThreadId
+        if (channel.awaitingReply && threadToCheck) {
+          const replied = await checkCreatorReplied(threadToCheck, channel.channelId)
           result.action = 'reply_check'
           updated.push({
             ...channel,
+            accountName,
             lastChecked: new Date().toISOString(),
             ...(replied ? { awaitingReply: false, creatorReplied: true } : {}),
             status: 'active',
@@ -148,6 +193,7 @@ export async function processChannels(): Promise<ProcessResult[]> {
           result.skipped = true
           updated.push({
             ...channel,
+            accountName,
             lastChecked: new Date().toISOString(),
             status: 'active',
           })

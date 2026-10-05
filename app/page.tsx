@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { ChannelConfig } from "@/lib/types";
+import type { ChannelConfig, PostedComment } from "@/lib/types";
 
 type Toast = { type: "success" | "error"; text: string } | null;
 
@@ -53,6 +53,59 @@ function truncate(str: string, n: number) {
   return str.length > n ? str.slice(0, n) + "…" : str;
 }
 
+function CommentsDialog({ channel, onClose }: { channel: ChannelConfig; onClose: () => void }) {
+  const comments = channel.comments ?? [];
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-xl bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-gray-100 bg-white px-6 py-4">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">{channel.channelTitle}</h3>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {comments.length} comment{comments.length === 1 ? "" : "s"} posted
+              {channel.accountName ? ` · as ${channel.accountName}` : ""}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-gray-300 hover:text-gray-600 text-lg leading-none">✕</button>
+        </div>
+        <div className="px-6 py-4 space-y-3">
+          {comments.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">No comments posted yet.</p>
+          ) : (
+            comments.map((c: PostedComment, i) => (
+              <div key={i} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                    c.type === "first" ? "bg-gray-200 text-gray-700" : "bg-purple-100 text-purple-800"
+                  }`}>
+                    {c.type === "first" ? "First comment" : "Follow-up"}
+                  </span>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">{fmt(c.postedAt)}</span>
+                </div>
+                <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{c.text}</p>
+                <a
+                  href={`https://youtube.com/watch?v=${c.videoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1.5 inline-block text-xs text-blue-600 hover:underline"
+                >
+                  {c.videoTitle ? truncate(c.videoTitle, 50) : "View video"} ↗
+                </a>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [channels, setChannels] = useState<ChannelConfig[]>([]);
   const [sheetsUrl, setSheetsUrl] = useState("");
@@ -60,6 +113,7 @@ export default function Home() {
   const [processing, setProcessing] = useState(false);
   const [toast, setToast] = useState<Toast>(null);
   const [lastRun, setLastRun] = useState<string | null>(null);
+  const [viewComments, setViewComments] = useState<ChannelConfig | null>(null);
 
   function showToast(type: "success" | "error", text: string) {
     setToast({ type, text });
@@ -152,6 +206,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
+      {viewComments && (
+        <CommentsDialog channel={viewComments} onClose={() => setViewComments(null)} />
+      )}
+
       {toast && (
         <div className={`fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all ${
           toast.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
@@ -210,7 +268,7 @@ export default function Home() {
               { step: "1", title: "Add channels", desc: "Paste your Google Sheet URL (Column A = channel URLs) and click Import." },
               { step: "2", title: "New video detected", desc: "Every run checks each channel. If a new upload is found within 24 h, it posts an AI comment." },
               { step: "3", title: "Awaiting reply", desc: "After the first comment, the channel waits. If the creator replies, the cycle is done." },
-              { step: "4", title: "Follow-up", desc: "If they post another video without replying, a follow-up comment is posted on the new video." },
+              { step: "4", title: "Follow-ups", desc: "Every time they upload without replying, another follow-up is posted — repeating until the creator finally replies." },
             ].map(({ step, title, desc }) => (
               <div key={step} className="flex gap-3">
                 <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{step}</span>
@@ -228,7 +286,7 @@ export default function Home() {
                 { badge: <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-400">Watching…</span>, desc: "Monitoring for new uploads. No comment posted yet." },
                 { badge: <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Awaiting reply</span>, desc: "First comment posted. Waiting to see if the creator replies." },
                 { badge: <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Creator replied</span>, desc: "Creator responded to the comment. Cycle complete." },
-                { badge: <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Follow-up posted</span>, desc: "No reply came, so a follow-up was posted on their next video." },
+                { badge: <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Follow-up posted</span>, desc: "No reply yet, so a follow-up was posted — and more will follow on each new upload until they reply." },
               ].map(({ badge, desc }, i) => (
                 <div key={i} className="flex items-center gap-2">
                   {badge}
@@ -307,7 +365,7 @@ export default function Home() {
                     <th className="text-left px-4 py-3 font-medium">State</th>
                     <th className="text-left px-4 py-3 font-medium">Status</th>
                     <th className="text-left px-4 py-3 font-medium">Latest video</th>
-                    <th className="text-left px-4 py-3 font-medium">Last commented</th>
+                    <th className="text-left px-4 py-3 font-medium">Comments</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
@@ -321,8 +379,11 @@ export default function Home() {
                         </a>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
-                          #{(ch.accountIndex ?? 0) + 1}
+                        <span
+                          className="inline-block max-w-[140px] truncate align-bottom text-xs font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full"
+                          title={ch.accountName ?? `Account ${(ch.accountIndex ?? 0) + 1}`}
+                        >
+                          {ch.accountName ?? `Account ${(ch.accountIndex ?? 0) + 1}`}
                         </span>
                       </td>
                       <td className="px-4 py-4"><StateBadge ch={ch} /></td>
@@ -340,7 +401,23 @@ export default function Home() {
                           </div>
                         ) : <span className="text-gray-400">—</span>}
                       </td>
-                      <td className="px-4 py-4 text-xs text-gray-400 whitespace-nowrap">{fmt(ch.lastCommentedAt)}</td>
+                      <td className="px-4 py-4">
+                        {ch.comments?.length ? (
+                          <button
+                            onClick={() => setViewComments(ch)}
+                            className="group flex flex-col items-start gap-0.5 text-left"
+                          >
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 group-hover:underline">
+                              💬 View {ch.comments.length} comment{ch.comments.length === 1 ? "" : "s"}
+                            </span>
+                            <span className="text-xs text-gray-400 whitespace-nowrap">
+                              Last: {fmt(ch.lastCommentedAt)}
+                            </span>
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-4">
                         <button onClick={() => handleDelete(ch.channelId)}
                           className="text-gray-300 hover:text-red-500 transition-colors text-xs" title="Remove channel">

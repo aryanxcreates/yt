@@ -18,7 +18,7 @@ export async function generateFirstComment(
   const context = buildContext(videoDescription, transcript)
 
   const response = await client.messages.create({
-    model: 'claude-opus-4-8',
+    model: 'claude-sonnet-5-5',
     max_tokens: 1000,
     messages: [{
       role: 'user',
@@ -53,7 +53,7 @@ export async function generateFollowUpComment(
   const context = buildContext(videoDescription, transcript)
 
   const response = await client.messages.create({
-    model: 'claude-opus-4-8',
+    model: 'claude-sonnet-5-5',
     max_tokens: 1000,
     messages: [{
       role: 'user',
