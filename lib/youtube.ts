@@ -1,5 +1,29 @@
 import { google } from 'googleapis'
 
+/**
+ * Google OAuth/API errors (GaxiosError) carry the useful detail in
+ * `response.data`, e.g. `{ error: 'unauthorized_client', error_description: '...' }`.
+ * `err.message` alone usually only shows the bare error code, so pull out the
+ * description when it's available.
+ */
+export function describeApiError(err: unknown): string {
+  if (err && typeof err === 'object') {
+    const data = (err as { response?: { data?: unknown } }).response?.data
+    if (data && typeof data === 'object') {
+      const { error, error_description } = data as {
+        error?: unknown
+        error_description?: unknown
+      }
+      const code = typeof error === 'string' ? error : undefined
+      const desc = typeof error_description === 'string' ? error_description : undefined
+      if (code && desc) return `${code}: ${desc}`
+      if (desc) return desc
+      if (code) return code
+    }
+  }
+  return err instanceof Error ? err.message : String(err)
+}
+
 const ACCOUNTS = [
   {
     clientId: process.env.YOUTUBE_ACCOUNT_1_CLIENT_ID,

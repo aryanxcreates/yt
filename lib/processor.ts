@@ -1,4 +1,4 @@
-import { getLatestVideo, getVideoContent, getVideoTranscript, postComment, checkCreatorReplied, resolveChannelId } from './youtube'
+import { getLatestVideo, getVideoContent, getVideoTranscript, postComment, checkCreatorReplied, resolveChannelId, describeApiError } from './youtube'
 import { getChannels, setChannels, getSheetUrl } from './store'
 import { generateFirstComment, generateFollowUpComment } from './claude'
 import { extractSpreadsheetId, parseGoogleSheet } from './sheets'
@@ -154,7 +154,7 @@ export async function processChannels(): Promise<ProcessResult[]> {
         }
       }
     } catch (err) {
-      const error = err instanceof Error ? err.message : String(err)
+      const error = describeApiError(err)
       result.action = 'error'
       result.error = error
       updated.push({

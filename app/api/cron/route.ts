@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processChannels } from "@/lib/processor";
 
-export async function GET(req: NextRequest) {
+export const maxDuration = 60;
+
+async function handle(req: NextRequest) {
   const auth = req.headers.get("authorization");
   if (
     process.env.CRON_SECRET &&
@@ -22,3 +24,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error }, { status: 500 });
   }
 }
+
+export const GET = handle;
+export const POST = handle;
