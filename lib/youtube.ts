@@ -110,11 +110,48 @@ export async function resolveChannelId(url: string): Promise<{
   }
 }
 
-export async function getLatestVideo(uploadsPlaylistId: string): Promise<{
+interface LatestVideo {
   id: string
   title: string
   publishedAt: string
-} | null> {
+}
+
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    .replace(/&amp;/g, '&')
+}
+
+/**
+ * Read the channel's public uploads RSS feed — this costs ZERO YouTube Data API
+ * quota, unlike `playlistItems.list` (1 unit/call). With a cron polling dozens
+ * of channels every few minutes, that 1 unit each was the dominant quota drain.
+ * The feed lists the newest uploads first, so entry[0] is the latest video.
+ */
+async function getLatestVideoFromFeed(channelId: string): Promise<LatestVideo | null> {
+  const res = await fetch(
+    `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`,
+    { cache: 'no-store' }
+  )
+  if (!res.ok) throw new Error(`YouTube feed HTTP ${res.status} for ${channelId}`)
+  const xml = await res.text()
+
+  const entry = xml.match(/<entry>([\s\S]*?)<\/entry>/)?.[1]
+  if (!entry) return null
+
+  const id = entry.match(/<yt:videoId>([^<]+)<\/yt:videoId>/)?.[1]
+  if (!id) return null
+  const title = entry.match(/<title>([\s\S]*?)<\/title>/)?.[1] ?? ''
+  const publishedAt = entry.match(/<published>([^<]+)<\/published>/)?.[1] ?? ''
+
+  return { id, title: decodeEntities(title.trim()), publishedAt }
+}
+
+async function getLatestVideoFromApi(uploadsPlaylistId: string): Promise<LatestVideo | null> {
   const yt = ytRead()
   const res = await yt.playlistItems.list({
     part: ['snippet', 'contentDetails'],
@@ -127,6 +164,21 @@ export async function getLatestVideo(uploadsPlaylistId: string): Promise<{
     id: item.contentDetails.videoId,
     title: item.snippet?.title ?? '',
     publishedAt: item.contentDetails?.videoPublishedAt ?? item.snippet?.publishedAt ?? '',
+  }
+}
+
+export async function getLatestVideo(
+  channelId: string,
+  uploadsPlaylistId?: string
+): Promise<LatestVideo | null> {
+  try {
+    return await getLatestVideoFromFeed(channelId)
+  } catch (err) {
+    // Feed unreachable/malformed — fall back to the API so a feed outage
+    // degrades gracefully instead of stalling the channel. This spends 1 quota
+    // unit, but only on the rare failure path.
+    if (uploadsPlaylistId) return getLatestVideoFromApi(uploadsPlaylistId)
+    throw err
   }
 }
 

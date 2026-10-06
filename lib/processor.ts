@@ -57,7 +57,7 @@ export async function processChannels(): Promise<ProcessResult[]> {
 
     try {
       const accountName = getAccountName(channel.accountIndex)
-      const video = await getLatestVideo(channel.uploadsPlaylistId)
+      const video = await getLatestVideo(channel.channelId, channel.uploadsPlaylistId)
 
       if (!video) {
         result.skipped = true
