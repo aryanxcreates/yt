@@ -22,39 +22,31 @@ export async function generateFirstComment(
     max_tokens: 400,
     messages: [{
       role: 'user',
-      content: `Generate a short, highly personalized YouTube comment for the video below.
+      content: `Write a YouTube comment for the video below, as a real person who actually watched it and happens to be a video editor.
 
 Channel: ${channelTitle}
 Video title: ${videoTitle}
 ${context}
 
-Your goal is to write a comment that feels like it was written by a real viewer who genuinely watched and understood the video, while naturally introducing the fact that you are a video editor.
+GOAL:
+Sound like a genuine viewer leaving a quick comment, who casually mentions they edit videos and could help. Not a pitch, not an ad, not an AI.
 
-STRICT FORMAT:
+HARD RULES:
+Maximum 250 characters total. Count them. Shorter is better.
+Mention one SPECIFIC thing from the video (an idea, moment, line, example, or opinion). Never a generic compliment.
+Then casually work in that you edit videos and could help make theirs hit harder. Keep it low key.
 
-EXACTLY 2 lines.
-Maximum 2 sentences.
-Keep it short, crisp, and natural.
-Line 1: Mention something SPECIFIC from the video — an idea, insight, story, example, hook, or opinion. Do not make a generic compliment.
-Line 2: Briefly introduce yourself as a video editor and naturally explain how you could help them make their videos better.
-The transition from the video observation to the editing offer should feel natural, NOT forced.
-Do not use phrases like "I loved your video", "Great content", "Amazing video", or other generic compliments unless followed by something highly specific.
-Do not sound like an advertisement, cold pitch, or AI-generated comment.
-Do not mention that you analyzed the transcript.
-Do not exaggerate or invent anything that is not present in the video.
-Avoid emojis unless they genuinely fit the tone.
-Do not include a portfolio link unless specifically requested.
-Prioritize specificity over compliments.
+SOUND HUMAN, NOT AI:
+Never use em dashes, en dashes, or hyphens to join clauses. Use commas, periods, or just start a new sentence.
+Write the way people actually type comments: casual, a little loose, lowercase is fine, contractions are good.
+No corporate or marketing words (elevate, leverage, unlock, game changer, next level, take it to the next level).
+No "I loved your video", "Great content", "Amazing video", or any filler compliment.
+Do not sound polished or structured. A tiny imperfection is fine.
+No emojis unless one genuinely fits.
+Do not mention transcripts, analysis, or that you are an editor "offering services".
+Do not invent anything that is not in the video. No portfolio links.
 
-STYLE:
-Authentic, conversational, concise, confident, and friendly.
-
-Think about the video first, identify the most interesting specific element, and then connect that element naturally to how a skilled video editor could improve the content's storytelling, pacing, retention, visuals, or overall presentation.
-
-IMPORTANT:
-The comment must be useful and relevant even if the creator ignores the editing offer.
-
-Reply with ONLY the 2-line comment. No quotation marks, explanations, labels, or extra text.`,
+Reply with ONLY the comment text. No quotes, labels, or extra text.`,
     }],
   })
 
@@ -76,40 +68,35 @@ export async function generateFollowUpComment(
     max_tokens: 400,
     messages: [{
       role: 'user',
-      content: `Generate a short, highly personalized YouTube follow-up comment for the video below.
+      content: `Write a YouTube follow-up comment for the video below, as a real person who keeps watching this creator and happens to be a video editor.
 
 Channel: ${channelTitle}
 Video title: ${videoTitle}
 ${context}
 
-This is a FOLLOW-UP comment on a NEW video from a creator you have commented on before as a video editor. Write a comment that feels like it was written by a real viewer who keeps coming back and genuinely watched this new video, while gently reinforcing that you are a video editor — WITHOUT re-introducing yourself from scratch.
+CONTEXT:
+You have commented on this creator before. This is a NEW video. Do not re-introduce yourself. Just sound like a regular viewer who keeps showing up.
 
-STRICT FORMAT:
+GOAL:
+Sound like a genuine returning viewer leaving a quick comment, who casually reminds them you edit videos and could help. Not a pitch, not an ad, not an AI.
 
-EXACTLY 2 lines.
-Maximum 2 sentences.
-Keep it short, crisp, and natural.
-Line 1: Mention something SPECIFIC from THIS video — an idea, insight, story, example, hook, or opinion. Do not make a generic compliment.
-Line 2: Reinforce, as a video editor, one concrete way you could help elevate their videos — framed as a returning viewer following their work, NOT a first-time introduction.
-The transition from the video observation to the editing angle should feel natural, NOT forced.
-Do not say "I'm back", "as I mentioned before", or reference a previous comment.
-Do not use phrases like "I loved your video", "Great content", "Amazing video", or other generic compliments unless followed by something highly specific.
-Do not sound like an advertisement, cold pitch, or AI-generated comment.
-Do not mention that you analyzed the transcript.
-Do not exaggerate or invent anything that is not present in the video.
-Avoid emojis unless they genuinely fit the tone.
-Do not include a portfolio link unless specifically requested.
-Prioritize specificity over compliments.
+HARD RULES:
+Maximum 250 characters total. Count them. Shorter is better.
+Mention one SPECIFIC thing from THIS video (an idea, moment, line, example, or opinion). Never a generic compliment.
+Then casually reinforce that you edit videos and could help, framed as someone who follows their stuff.
+Do not say "I'm back", "as I said before", or reference your past comment.
 
-STYLE:
-Authentic, conversational, concise, confident, and friendly.
+SOUND HUMAN, NOT AI:
+Never use em dashes, en dashes, or hyphens to join clauses. Use commas, periods, or just start a new sentence.
+Write the way people actually type comments: casual, a little loose, lowercase is fine, contractions are good.
+No corporate or marketing words (elevate, leverage, unlock, game changer, next level, take it to the next level).
+No "I loved your video", "Great content", "Amazing video", or any filler compliment.
+Do not sound polished or structured. A tiny imperfection is fine.
+No emojis unless one genuinely fits.
+Do not mention transcripts, analysis, or that you are an editor "offering services".
+Do not invent anything that is not in the video. No portfolio links.
 
-Think about the video first, identify the most interesting specific element, and then connect that element naturally to how a skilled video editor could improve the content's storytelling, pacing, retention, visuals, or overall presentation.
-
-IMPORTANT:
-The comment must be useful and relevant even if the creator ignores the editing offer.
-
-Reply with ONLY the 2-line comment. No quotation marks, explanations, labels, or extra text.`,
+Reply with ONLY the comment text. No quotes, labels, or extra text.`,
     }],
   })
 
